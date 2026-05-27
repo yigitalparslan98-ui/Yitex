@@ -1,73 +1,71 @@
 import streamlit as st
 import asyncio
-import edge_tts
 import os
 from playwright.async_api import async_playwright
 
-st.title("YITEX OS | SİBER ARAŞTIRMACI")
+# [SİSTEM BAŞLATICI - Firefox'u sunucuya kurar]
+if not os.path.exists("firefox_installed.txt"):
+    os.system("playwright install firefox")
+    with open("firefox_installed.txt", "w") as f: f.write("installed")
 
-# Hafıza Yönetimi
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# [PRO ARAYÜZ (CSS)]
+st.markdown("""
+<style>
+    .stApp { background: linear-gradient(135deg, #0b0e14 0%, #1a1f2e 100%); color: #00f2ff; font-family: 'Inter', sans-serif; }
+    .stChatFloatingInputContainer { background: #0b0e14; border-top: 1px solid #00f2ff; }
+    .stChatMessage { border-radius: 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.2); }
+    h1 { color: #00f2ff; text-transform: uppercase; letter-spacing: 2px; }
+    .css-1544g2n { color: #00f2ff !important; }
+</style>
+""", unsafe_allow_html=True)
 
-# Mozilla Motoru ile Araştırma
+st.title("⚡ YITEX | PRO-OS")
+st.subheader("Siber Araştırmacı v6.0")
+
+# [SİSTEM DURUMU]
+col1, col2 = st.columns(2)
+with col1: st.metric("Motor", "Mozilla Gecko")
+with col2: st.metric("Durum", "Aktif")
+
+if "messages" not in st.session_state: st.session_state.messages = []
+
+# [ARAŞTIRMA MOTORU]
 async def moz_ara(query):
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
-        try:
-            await page.goto(f"https://www.google.com/search?q={query}")
-            # Google sonuçlarını çek (Başlık ve özet)
-            results = await page.evaluate("""
-                Array.from(document.querySelectorAll('h3, .VwiC3b')).map(e => e.innerText).slice(0, 4)
-            """)
-            await browser.close()
-            return "\n".join(results)
-        except Exception as e:
-            await browser.close()
-            return "Araştırma sırasında siber bir engel oluştu."
+        await page.goto(f"https://www.google.com/search?q={query}")
+        # Daha geniş veri çekme
+        results = await page.evaluate("Array.from(document.querySelectorAll('h3, .VwiC3b')).map(e => e.innerText).slice(0, 5)")
+        await browser.close()
+        return "\n\n".join(results)
 
-# Sidebar Hafızası
-with st.sidebar:
-    st.header("Siber Günlük")
-    for msg in st.session_state.messages:
-        st.write(f"- {msg['content'][:30]}...")
-    if st.button("Hafızayı Temizle"):
-        st.session_state.messages = []
-        st.rerun()
-
-# Ana Chat
+# [CHAT MANTIĞI]
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-if prompt := st.chat_input("Yitex'e ne soralım?"):
+if prompt := st.chat_input("Siber vizör aktif... Bir komut gir."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Mozilla motoru tarıyor..."):
+        with st.spinner("Mozilla motoru derin tarama yapıyor..."):
             sonuc = asyncio.run(moz_ara(prompt))
             
-            # Dürüstlük Protokolü: Sonuç boşsa dürüst ol.
-            if not sonuc or len(sonuc) < 10:
-                cevap = "Bunu web üzerinde dürüstçe bulamadım Yiğit. Yalan söyleyip seni kandıramam."
+            # Pro Yanıt Düzeni
+            if not sonuc:
+                cevap = "Sistem dürüst: Bu konuda web üzerinde somut bir veri bulamadım."
             else:
-                cevap = f"Araştırmalarım sonucunda ulaştığım veriler:\n\n{sonuc}"
+                cevap = f"**Siber Tarama Sonucu:**\n\n{sonuc}"
             
             st.write(cevap)
-            
-            # Sesli Yanıt (Hata Korumalı)
-            async def ses_kaydet(metin):
-                try:
-                    communicate = edge_tts.Communicate(metin, "tr-TR-KaanNeural")
-                    await communicate.save("temp.mp3")
-                    return True
-                except:
-                    return False
-            
-            if asyncio.run(ses_kaydet(cevap)):
-                st.audio("temp.mp3", format="audio/mp3", autoplay=True)
-                
-        st.session_state.messages.append({"role": "assistant", "content": cevap})
+            st.session_state.messages.append({"role": "assistant", "content": cevap})
+
+# Sidebar Pro-Settings
+with st.sidebar:
+    st.title("SİSTEM KONTROL")
+    if st.button("Hafızayı Temizle"):
+        st.session_state.messages = []
+        st.rerun()
