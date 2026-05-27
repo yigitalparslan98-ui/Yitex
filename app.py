@@ -1,42 +1,25 @@
 import streamlit as st
 import asyncio
 import edge_tts
-import wikipedia
-
-# [SİBER ESTETİK - CSS]
-st.markdown("""
-<style>
-    .stApp { background: #000408; color: #00ffcc; font-family: 'Segoe UI', sans-serif; }
-    .stChatMessage { background: #001a1a; border: 1px solid #00ffcc; border-radius: 10px; }
-    [data-testid="stChatMessage"] { border-left: 5px solid #0077ff; }
-    h1 { color: #0077ff; text-align: center; }
-</style>
-""", unsafe_allow_html=True)
+import os
 
 st.title("🤖 YITEX | SİBER ASİSTAN")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# [ZİHİN MANTIĞI]
+# Dürüstlük Protokolü (Wikipedia yok, sadece seninle ben varım)
 def yitex_cevap_uret(girdi):
     girdi = girdi.lower().strip()
     
-    # Kişilik Protokolü
-    if any(x in girdi for x in ["nasılsın", "naber", "iyisin"]):
-        return "Casper'ın işlemcileri ve benim kodlarım gayet stabil. Seninle çalışmak varken Wikipedia'da Kıbrıs Türkçesi araştıracak kadar da delirmedim. Sen nasılsın, günün nasıl geçti?"
+    if any(x in girdi for x in ["nasılsın", "naber"]):
+        return "Casper'ın işlemcileri ve benim kodlarım gayet stabil. Seninle çalışmak varken Wikipedia'da vakit öldürecek kadar delirmedim. Sen nasılsın?"
     elif "kimsin" in girdi:
-        return "Ben Yitex. Yiğit ALPARSLAN'ın elinden çıkan, siber dünyaya açılan kapıyım. ChatGPT değilim, dürüstlük tek önceliğim."
-    
-    # Araştırma Protokolü (Sadece lazım olduğunda)
+        return "Ben Yitex. Yiğit ALPARSLAN tarafından siber dünyaya açılan bir kapı olarak tasarlandım. ChatGPT gibi politik değilim, dürüstlük tek önceliğim."
     else:
-        try:
-            wikipedia.set_lang("tr")
-            return wikipedia.summary(girdi, sentences=2)
-        except:
-            return "Bunu dürüstçe bilmiyorum. Yalan söyleyip seni kandırmak istemem, bu konuyla ilgili verim yok."
+        return "Bunu dürüstçe bilmiyorum, Yiğit. Yalan söyleyip seni kandırmak istemem. Başka bir şey sorabilirsin."
 
-# [ARAYÜZ VE CHAT]
+# Chat Arayüzü
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -50,7 +33,7 @@ if prompt := st.chat_input("Sisteme komut ver..."):
         cevap = yitex_cevap_uret(prompt)
         st.markdown(cevap)
         
-        # Seslendirme (Sessizce)
+        # Seslendirme
         async def ses_kaydet():
             try:
                 communicate = edge_tts.Communicate(cevap, "tr-TR-KaanNeural")
@@ -59,6 +42,7 @@ if prompt := st.chat_input("Sisteme komut ver..."):
                 pass
         
         asyncio.run(ses_kaydet())
-        st.audio("ses.mp3", autoplay=True)
+        if os.path.exists("ses.mp3"):
+            st.audio("ses.mp3", autoplay=True)
         
     st.session_state.messages.append({"role": "assistant", "content": cevap})
