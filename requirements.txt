@@ -1,0 +1,8 @@
+streamlit
+playwright
+edge-tts
+pygame
+requests
+opencv-python-headless
+numpy
+pandas
