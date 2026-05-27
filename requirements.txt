@@ -2,3 +2,4 @@ streamlit
 edge-tts
 wikipedia
 playwright
+httpx
