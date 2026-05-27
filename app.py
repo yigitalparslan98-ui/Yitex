@@ -1,41 +1,64 @@
 import streamlit as st
 import asyncio
 import edge_tts
-import os
+import wikipedia
 
-# [ARAYÜZ TASARIMI - CSS İLE SİBER GÖRÜNÜM]
+# [SİBER ESTETİK - CSS]
 st.markdown("""
 <style>
-    .stApp { background-color: #0e1117; color: #00ffcc; font-family: 'Courier New', monospace; }
-    .stTextInput>div>div>input { border: 1px solid #00ffcc; background: #1a1a1a; color: white; }
-    h1 { color: #ff00ff; text-align: center; }
+    .stApp { background: #000408; color: #00ffcc; font-family: 'Segoe UI', sans-serif; }
+    .stChatMessage { background: #001a1a; border: 1px solid #00ffcc; border-radius: 10px; }
+    [data-testid="stChatMessage"] { border-left: 5px solid #0077ff; }
+    h1 { color: #0077ff; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("--- YITEX SİBER ARAYÜZ ---")
+st.title("🤖 YITEX | SİBER ASİSTAN")
 
-# [SES MOTORU - HATA KORUMALI]
-async def ses_uret(metin, ses):
-    try:
-        communicate = edge_tts.Communicate(metin, ses)
-        await communicate.save("out.mp3")
-        return True
-    except Exception as e:
-        return False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# [ANA MANTIĞI]
-user_input = st.text_input("Komut Gir:")
-ses = st.selectbox("Ses:", ["tr-TR-KaanNeural", "tr-TR-DenizNeural"])
-
-if st.button("Sistemi Çalıştır"):
-    # Basit bir cevap (Wikipedia veya yerel)
-    cevap = f"Sistem taraması tamamlandı. {user_input} hakkında: Kıbrıs Türkçesi, tarihsel bir kökene sahiptir."
+# [ZİHİN MANTIĞI]
+def yitex_cevap_uret(girdi):
+    girdi = girdi.lower().strip()
     
-    st.write(f"**Yitex:** {cevap}")
+    # Kişilik Protokolü
+    if any(x in girdi for x in ["nasılsın", "naber", "iyisin"]):
+        return "Casper'ın işlemcileri ve benim kodlarım gayet stabil. Seninle çalışmak varken Wikipedia'da Kıbrıs Türkçesi araştıracak kadar da delirmedim. Sen nasılsın, günün nasıl geçti?"
+    elif "kimsin" in girdi:
+        return "Ben Yitex. Yiğit ALPARSLAN'ın elinden çıkan, siber dünyaya açılan kapıyım. ChatGPT değilim, dürüstlük tek önceliğim."
     
-    with st.spinner("Ses verisi işleniyor..."):
-        basarili = asyncio.run(ses_uret(cevap, ses))
-        if basarili:
-            st.audio("out.mp3", autoplay=True)
-        else:
-            st.warning("Ses motoru şu an cevap vermiyor, sadece metin modu aktif.")
+    # Araştırma Protokolü (Sadece lazım olduğunda)
+    else:
+        try:
+            wikipedia.set_lang("tr")
+            return wikipedia.summary(girdi, sentences=2)
+        except:
+            return "Bunu dürüstçe bilmiyorum. Yalan söyleyip seni kandırmak istemem, bu konuyla ilgili verim yok."
+
+# [ARAYÜZ VE CHAT]
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+if prompt := st.chat_input("Sisteme komut ver..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        cevap = yitex_cevap_uret(prompt)
+        st.markdown(cevap)
+        
+        # Seslendirme (Sessizce)
+        async def ses_kaydet():
+            try:
+                communicate = edge_tts.Communicate(cevap, "tr-TR-KaanNeural")
+                await communicate.save("ses.mp3")
+            except:
+                pass
+        
+        asyncio.run(ses_kaydet())
+        st.audio("ses.mp3", autoplay=True)
+        
+    st.session_state.messages.append({"role": "assistant", "content": cevap})
