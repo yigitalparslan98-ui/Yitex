@@ -1,71 +1,58 @@
 import streamlit as st
-import asyncio
-import os
-from playwright.async_api import async_playwright
+import httpx
+from bs4 import BeautifulSoup
 
-# [SİSTEM BAŞLATICI - Firefox'u sunucuya kurar]
-if not os.path.exists("firefox_installed.txt"):
-    os.system("playwright install firefox")
-    with open("firefox_installed.txt", "w") as f: f.write("installed")
-
-# [PRO ARAYÜZ (CSS)]
-st.markdown("""
-<style>
-    .stApp { background: linear-gradient(135deg, #0b0e14 0%, #1a1f2e 100%); color: #00f2ff; font-family: 'Inter', sans-serif; }
-    .stChatFloatingInputContainer { background: #0b0e14; border-top: 1px solid #00f2ff; }
-    .stChatMessage { border-radius: 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.2); }
-    h1 { color: #00f2ff; text-transform: uppercase; letter-spacing: 2px; }
-    .css-1544g2n { color: #00f2ff !important; }
-</style>
-""", unsafe_allow_html=True)
+# Sayfa Yapısı
+st.set_page_config(page_title="YITEX | PRO", layout="wide")
 
 st.title("⚡ YITEX | PRO-OS")
-st.subheader("Siber Araştırmacı v6.0")
+st.write("Sistem Durumu: Çevrimiçi | Motor: HTTP-Scraper")
 
-# [SİSTEM DURUMU]
-col1, col2 = st.columns(2)
-with col1: st.metric("Motor", "Mozilla Gecko")
-with col2: st.metric("Durum", "Aktif")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-if "messages" not in st.session_state: st.session_state.messages = []
+# Dürüstlük ve Araştırma Motoru
+def siber_ara(query):
+    try:
+        # Google üzerinden hızlıca tara
+        url = f"https://www.google.com/search?q={query}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        
+        with httpx.Client() as client:
+            response = client.get(url, headers=headers)
+            soup = BeautifulSoup(response.text, "html.parser")
+            
+            # Sonuçları çek
+            sonuclar = []
+            for g in soup.select("h3"):
+                sonuclar.append(g.text)
+            
+            return "\n".join(sonuclar[:5]) if sonuclar else "Somut bir veri bulamadım."
+    except:
+        return "Siber ağa bağlanırken bir sorun oluştu."
 
-# [ARAŞTIRMA MOTORU]
-async def moz_ara(query):
-    async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(f"https://www.google.com/search?q={query}")
-        # Daha geniş veri çekme
-        results = await page.evaluate("Array.from(document.querySelectorAll('h3, .VwiC3b')).map(e => e.innerText).slice(0, 5)")
-        await browser.close()
-        return "\n\n".join(results)
-
-# [CHAT MANTIĞI]
+# Chat Arayüzü
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-if prompt := st.chat_input("Siber vizör aktif... Bir komut gir."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Mozilla motoru derin tarama yapıyor..."):
-            sonuc = asyncio.run(moz_ara(prompt))
+if prompt := st.chat_input("Komut gir..."):
+    # Sistemsel Yanıtlar
+    if "nasılsın" in prompt.lower():
+        cevap = "Kodlar temizlendi, sistem kararlı. Seninle çalışmaya hazırım. Sen nasılsın?"
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
             
-            # Pro Yanıt Düzeni
-            if not sonuc:
-                cevap = "Sistem dürüst: Bu konuda web üzerinde somut bir veri bulamadım."
-            else:
-                cevap = f"**Siber Tarama Sonucu:**\n\n{sonuc}"
-            
-            st.write(cevap)
-            st.session_state.messages.append({"role": "assistant", "content": cevap})
+        with st.chat_message("assistant"):
+            with st.spinner("Veri işleniyor..."):
+                cevap = siber_ara(prompt)
+                st.write(cevap)
+                
+        st.session_state.messages.append({"role": "assistant", "content": cevap})
 
-# Sidebar Pro-Settings
 with st.sidebar:
-    st.title("SİSTEM KONTROL")
-    if st.button("Hafızayı Temizle"):
+    if st.button("Sıfırla"):
         st.session_state.messages = []
         st.rerun()
